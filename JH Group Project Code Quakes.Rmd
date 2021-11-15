@@ -1,0 +1,133 @@
+---
+title: "R Notebook"
+output: html_notebook
+---
+
+This is an [R Markdown](http://rmarkdown.rstudio.com) Notebook. When you execute code within the notebook, the results appear beneath the code. 
+
+Try executing this chunk by clicking the *Run* button within the chunk or by placing your cursor inside it and pressing *Ctrl+Shift+Enter*. 
+
+```{r}
+plot(cars)
+```
+
+Add a new chunk by clicking the *Insert Chunk* button on the toolbar or by pressing *Ctrl+Alt+I*.
+
+When you save the notebook, an HTML file containing the code and output will be saved alongside it (click the *Preview* button or press *Ctrl+Shift+K* to preview the HTML file).
+
+The preview shows you a rendered HTML copy of the contents of the editor. Consequently, unlike *Knit*, *Preview* does not run any R code chunks. Instead, the output of the chunk when it was last run in the editor is displayed.
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+install.packages("flexdashboard")
+library(tidyverse)
+library(magrittr)
+library(highcharter)
+library(haven)
+library(psych)
+library(here)
+library(scales)
+library(lubridate, warn.conflicts = FALSE)
+pacman::p_load(tidyverse, showtext, jpeg, png)
+theme_set(theme_minimal())
+```
+
+
+```{r}
+quakes=read.csv("JH Quakes 6 0 11 10 21.csv", header=TRUE)
+#str(quakes)
+#View(quakes)
+```
+
+```{r}
+
+jh1 <- quakes 
+
+```
+
+Maximum Magnitude by Year
+
+```{r}
+jh1 %>% 
+filter(year>1948)%>%
+group_by(year) %>%
+mutate(mag_max = max(mag, na.rm = TRUE))%>%
+mutate(max_atom = max(AtomBombs, na.rm = TRUE))%>%
+ungroup()%>%
+hchart("bubble", hcaes(x = year, y = mag_max, size = max_atom, color = max_atom), name = "Atom Bombs") %>%
+hc_xAxis(title = list (text = "Year"))%>%
+hc_yAxis(title = list (text = "Magnitude"))%>%
+hc_tooltip(useHTML = TRUE,
+           formatter = JS(
+             "
+             function(){
+             outHTML = '<b>' + this.point.x + '</b> <br> Magnitude ' + this.point.y.toFixed(1) + 
+             '<br> Energy: Atomic Bombs ' + this.point.z.toLocaleString('en-US', {maximumFractionDigits:0})
+             return(outHTML)
+             }
+             "
+           ))%>%
+hc_annotations(
+              list(
+                labels = 
+                        list(
+                          list(
+                              point = list(x = 1960, y=9.5, xAxis = 0, yAxis=0),
+                              text = "Chile - Largest Ever Recorded <br/> 1,655 dead"
+                              ),
+                          list(
+                              point = list(x = 1964, y=9.2, xAxis = 0, yAxis=0),
+                              text = "Alaska <br/> 131 dead"
+                              ),
+                          list(
+                              point = list(x = 2004, y=9.1, xAxis = 0, yAxis=0),
+                              text = "Sumatra <br/> 227,898 dead"
+                              ),
+                          list(
+                              point = list(x = 2004, y=9.1, xAxis = 0, yAxis=0),
+                              text = "Japan <br/> 19,747 dead"
+                              )),
+                labelOptions = list(
+                                  shape = 'connector', align = 'right', justify = FALSE, corp = TRUE,
+                                  style = list(fontSize='1.0em', textOutline='2px white')
+                                    ) 
+                )
+            )%>%
+hc_title(text = "Largest Earthquake Each Year")%>%  
+hc_add_theme(hc_theme_ffx())
+
+
+
+```
+
+Frequency of Earthquakes
+```{r}
+jh1 %>% 
+filter(year>1948)%>%
+count(year) %>% 
+mutate(freq = n) %>%
+hchart("column", hcaes(x = year, y = freq), name = "Total 6.0+ Earthquakes") %>%
+hc_xAxis(title = list (text = "Year"))%>%
+hc_yAxis(title = list (text = "Total Earthquakes 6.0+"))%>%
+hc_title(text = "Total 6.0+ Earthquakes Per Year")%>%  
+#hc_subtitle(text = "Hiroshima in 1945 released the equivalent energy of a magnitude 6 earthquake.")%>%
+hc_add_theme(hc_theme_ffx())
+```
+
+Energy of Earthquakes
+```{r}
+jh1 %>%
+  group_by (year) %>%
+  filter (year>1948)%>%
+  mutate(ttl_bombs = sum(AtomBombs)) %>%
+  hchart("column", hcaes(x = year, y = ttl_bombs), name = "Atomic Bombs") %>%
+  hc_tooltip(pointFormat = "{point.y:,.0f}")%>%
+  hc_xAxis(title = list (text = "Year"))%>%
+  hc_yAxis(title = list (text = "Atomic Bombs"))%>%
+  hc_title(text = "Total Energy Release of all 6.0+ Earthquakes Per Year: Energy Equivalent = Atomic Bombs")%>%
+  hc_subtitle(text = "Hiroshima in 1945 released the equivalent energy of a magnitude 6 earthquake.")%>%
+  hc_add_theme(hc_theme_ffx())
+
+```
+
